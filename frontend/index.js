@@ -178,7 +178,12 @@ function ShiftManager(shouldShowSettingsButton) {
 		  				workedHours=TotalPeopleTime[peopleCounter];
 		  			}
 		  		} else {
-		  			workedHours=DailyHours;
+		  			if (TotalPeopleTime[peopleCounter]>DailyHours){
+		  				workedHours=DailyHours;
+		  			} else {
+		  				workedHours=TotalPeopleTime[peopleCounter];
+		  			}
+		  			
 		  		}
 		  		
 		  		DailyHours=DailyHours-workedHours;
