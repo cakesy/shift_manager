@@ -1,6 +1,6 @@
 import {initializeBlock,useBase,useRecords, FieldPickerSynced, useGlobalConfig,  TablePickerSynced, expandRecord, useWatchable,
     ViewPickerSynced, Button,
-    Label, Box,Input,useSynced,
+    Label, Box,Input,useSynced,Select,
     FormField,
     TextButton} from '@airtable/blocks/ui';
     
@@ -34,10 +34,42 @@ function ShiftManager(shouldShowSettingsButton) {
 	
 	const table = base.getTableByIdIfExists(tableId);
 	const records = useRecords(table);
+	
+	 const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const options = [
+		  { value: "0", label: "Mon" },
+		  { value: "1", label: "Tue" },
+		  { value: "2", label: "Wed" },
+		  { value: "3", label: "Thu" },
+		  { value: "4", label: "Fri" },
+		  { value: "5", label: "Sat" },
+		  { value: "6", label: "Sun" }
+		];
     
     var errorMessage = "";
     
+     const [value, setValue] = useState(options[0].value);
     
+    	if ( !table.getFieldIfExists("Total") ){
+	  		createNewSingleLineTextField(table,"Total");
+	  	}
+	  	
+	  	
+    	if ( !table.getFieldIfExists("Shifts") ){
+	  		createNewSingleLineTextField(table,"Shifts");
+	  	}
+	  	
+	  	 // create days time and day fields
+	   for (var i = 0; i < NumberOfDays; i++) { 
+		  var num=(i+parseInt(value,10))%7;
+		  if ( !table.getFieldIfExists(days[num])){
+		  		createNewSingleLineTextField(table,days[num]);
+		  }
+	   }
+    
+   
+    
+
     return (
         <div>
             <Box  padding={2} >
@@ -79,11 +111,25 @@ function ShiftManager(shouldShowSettingsButton) {
 						  placeholder="Number of people"
 						/>
 					</Box>
+					<Box  display='flex' paddingTop={2}>
+					<Label htmlFor="daymon" width="30%">People on at once</Label>
+				 	  <Select id="daymon"
+						  options={options}
+						  value={value}
+						  onChange={newValue => setValue(newValue)}
+						  width="320px"
+						/>
+					</Box>
+					
+					   
 					<Box paddingTop={2} >
 					   <Button onClick={() => { ProcessShifts() }}
 						icon="edit" id="clicktable">
 						Process shifts
 					  </Button>
+					</Box>
+					<Box paddingTop={2} >
+					   <Label htmlFor="">{errorMessage}</Label>
 					</Box>
 			</Box>
         </div>
@@ -94,8 +140,6 @@ function ShiftManager(shouldShowSettingsButton) {
 			await table.unstable_createFieldAsync(name, FieldType.SINGLE_LINE_TEXT);
 		}
 	}
-	
-	
 	
     // process the table
 	function ProcessShifts() {
@@ -113,10 +157,6 @@ function ShiftManager(shouldShowSettingsButton) {
 	   var GridHour = new Array(TotalStaffNumber);
 	   var WorkerShift = new Array(TotalStaffNumber);
 	   
-	   //create total field
-	   	if ( !table.getFieldIfExists("Total") ){
-	  		createNewSingleLineTextField(table,"Total");
-	  	}
 	  	
 	  	
 	  	//create 2d array for hours per day
@@ -133,9 +173,9 @@ function ShiftManager(shouldShowSettingsButton) {
 		  DaysTotalTime[i]=NumberOfHours*PeoplePerHour;
 		  
 		  
-		  if ( !table.getFieldIfExists("Day "+(i+1)) ){
-		  		//table.unstable_createFieldAsync("Day "+(i+1),FieldType.SINGLE_LINE_TEXT);
-		  		createNewSingleLineTextField(table,"Day "+(i+1));
+			var num=(i+parseInt(value,10))%7;
+		  if ( !table.getFieldIfExists(days[num])){
+		  		createNewSingleLineTextField(table,days[num]);
 		  }
 	   }
 	
@@ -187,14 +227,15 @@ function ShiftManager(shouldShowSettingsButton) {
 		  		}
 		  		
 		  		DailyHours=DailyHours-workedHours;
+				 var num=(i+parseInt(value,10))%7;
 		  		
 		  		TotalPeopleTime[peopleCounter]=TotalPeopleTime[peopleCounter]-workedHours;
-		  		WorkerShift[peopleCounter]=WorkerShift[peopleCounter]+"Day "+(i+1)+" works "+workedHours+" hours, ";
+		  		WorkerShift[peopleCounter]=WorkerShift[peopleCounter]+days[num]+" works "+workedHours+" hours, ";
 		  		GridHour[peopleCounter][i]=workedHours;
 		  		
-		  		console.log(" set GridHour "+peopleCounter+", "+i+" = "+workedHours);
+		  		//console.log(" set GridHour "+peopleCounter+", "+i+" = "+workedHours);
 		  		
-		  		console.log("  day "+i+" work "+DailyHours+" for "+peopleCounter+" workedHours "+workedHours+ " -> "+WorkerShift[peopleCounter]);
+		  		//console.log("  day "+i+" work "+DailyHours+" for "+peopleCounter+" workedHours "+workedHours+ " -> "+WorkerShift[peopleCounter]);
 		  		peopleCounter++;
 		  		if (peopleCounter>=records.length){
 			  		peopleCounter=0;
@@ -212,10 +253,10 @@ function ShiftManager(shouldShowSettingsButton) {
 			
 			var totalHoursWorked = 0;
 			for (var i = 0; i < NumberOfDays; i++) { 
+				 var num=(i+parseInt(value,10))%7;
 		  
-				  if ( table.getFieldIfExists("Day "+(i+1)) ){
-				  		var dayname="Day "+(i+1);
-						updateShift[ dayname]=GridHour[peopleCounter][i].toString();
+				  if ( table.getFieldIfExists(days[num]) ){
+						updateShift[ days[num]]=GridHour[peopleCounter][i].toString();
 						//console.log("peep "+peopleCounter+", "+i+" - "+dayname+" = "+toString(GridHour[peopleCounter][i])+" : "+GridHour[peopleCounter][i] );
 				  }
 				  totalHoursWorked=totalHoursWorked+parseInt(GridHour[peopleCounter][i]);
